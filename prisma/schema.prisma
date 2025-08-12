@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  username   String   @unique
+  password   String
+  bio        String
+  avatar     String
+  last_login DateTime
+  created_at DateTime
+
+  //Relations
+  posts    posts[]    @relation("UserPosts")
+  comments comments[] @relation("UserComments")
+  likes    likes[]    @relation("UserLikes")
+  following  follows[] @relation("Following")
+  followers  follows[] @relation("Followers")
+}
+
+model posts {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  caption   String
+  timestamp DateTime
+
+  //Relations
+  user     users        @relation("UserPosts", fields: [user_id], onDelete: Cascade, references: [id])
+  media    post_media[] @relation("PostMedia")
+  likes    likes[]      @relation("PostLikes")
+  comments comments[]   @relation("PostComments")
+}
+
+model post_media {
+  id        Int      @id @default(autoincrement())
+  post_id   Int
+  timestamp DateTime
+
+  //Relations
+  post posts @relation("PostMedia", fields: [post_id], onDelete: Cascade, references: [id])
+}
+
+model comments {
+  id        Int      @id @default(autoincrement())
+  post_id   Int
+  user_id   Int
+  content   String
+  timestamp DateTime
+
+  //Relations
+  post      posts    @relation("PostComments", fields: [post_id], onDelete: Cascade, references: [id])
+  user      users    @relation("UserComments", fields: [user_id], onDelete: Cascade, references: [id])
+}
+
+model likes {
+  id      Int   @id @default(autoincrement())
+  post_id Int
+  user_id Int
+  timestamp DateTime
+  
+  //Relations
+  user    users @relation("UserLikes", fields: [user_id], onDelete: Cascade, references: [id])
+  post    posts @relation("PostLikes", fields: [post_id], onDelete: Cascade, references: [id])
+}
+
+model follows {
+  id                Int      @id @default(autoincrement())
+  following_user_id Int
+  followed_user_id  Int
+  created_at        DateTime
+
+  //Relations
+  following_user users @relation("Following", fields: [following_user_id], references: [id])
+  followed_user  users @relation("Followers", fields: [followed_user_id], references: [id])
+}
