@@ -13,8 +13,8 @@ model users {
   email      String   @unique
   username   String   @unique
   password   String
-  bio        String
-  avatar     String
+  bio        String?
+  avatar     String?
   last_login DateTime
   created_at DateTime
 
