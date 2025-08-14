@@ -19,11 +19,11 @@ model users {
   created_at DateTime
 
   //Relations
-  posts    posts[]    @relation("UserPosts")
-  comments comments[] @relation("UserComments")
-  likes    likes[]    @relation("UserLikes")
-  following  follows[] @relation("Following")
-  followers  follows[] @relation("Followers")
+  posts     posts[]    @relation("UserPosts")
+  comments  comments[] @relation("UserComments")
+  likes     likes[]    @relation("UserLikes")
+  following follows[]  @relation("Following")
+  followers follows[]  @relation("Followers")
 }
 
 model posts {
@@ -42,6 +42,7 @@ model posts {
 model post_media {
   id        Int      @id @default(autoincrement())
   post_id   Int
+  link_url  String
   timestamp DateTime
 
   //Relations
@@ -56,19 +57,19 @@ model comments {
   timestamp DateTime
 
   //Relations
-  post      posts    @relation("PostComments", fields: [post_id], onDelete: Cascade, references: [id])
-  user      users    @relation("UserComments", fields: [user_id], onDelete: Cascade, references: [id])
+  post posts @relation("PostComments", fields: [post_id], onDelete: Cascade, references: [id])
+  user users @relation("UserComments", fields: [user_id], onDelete: Cascade, references: [id])
 }
 
 model likes {
-  id      Int   @id @default(autoincrement())
-  post_id Int
-  user_id Int
+  id        Int      @id @default(autoincrement())
+  post_id   Int
+  user_id   Int
   timestamp DateTime
-  
+
   //Relations
-  user    users @relation("UserLikes", fields: [user_id], onDelete: Cascade, references: [id])
-  post    posts @relation("PostLikes", fields: [post_id], onDelete: Cascade, references: [id])
+  user users @relation("UserLikes", fields: [user_id], onDelete: Cascade, references: [id])
+  post posts @relation("PostLikes", fields: [post_id], onDelete: Cascade, references: [id])
 }
 
 model follows {

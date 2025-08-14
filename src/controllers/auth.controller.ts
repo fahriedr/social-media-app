@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response, Router } from "express";
-import { createUser, login } from "../services/auth/auth.service";
+import { createUser, login } from "../services/auth.service";
 import { RegisterInput } from "../models/register-input.model";
 import { validate } from "../middleware/validate.middleware";
 import { LoginInputSchema, loginSchema, registerSchema } from "../shcemas/auth.schema";

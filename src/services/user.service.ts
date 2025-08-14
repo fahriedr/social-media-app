@@ -1,6 +1,6 @@
-import { HttpException } from "../../models/http-exception"
-import { User } from "../../models/user.model"
-import prisma from "../../utils/prisma-client"
+import { HttpException } from "../models/http-exception"
+import { User } from "../models/user.model"
+import prisma from "../utils/prisma-client"
 
 export const getProfile = async (id: number): Promise<User>  => {
     
@@ -46,6 +46,6 @@ export const searchUser = async (keyword: string) => {
         }
     })
 
-    return {user}
+    return user
 
 }

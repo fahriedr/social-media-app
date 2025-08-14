@@ -1,10 +1,10 @@
-import { HttpException } from "../../models/http-exception"
-import { RegisterInput } from "../../models/register-input.model"
-import { RegisteredUser } from "../../models/registered-user.model"
-import prisma from "../../utils/prisma-client"
+import { HttpException } from "../models/http-exception"
+import { RegisterInput } from "../models/register-input.model"
+import { RegisteredUser } from "../models/registered-user.model"
+import prisma from "../utils/prisma-client"
 import bcrypt from "bcrypt"
-import { generateToken } from "../../utils/token.utils"
-import { LoginInputSchema } from "../../shcemas/auth.schema"
+import { generateToken } from "../utils/token.utils"
+import { LoginInputSchema } from "../shcemas/auth.schema"
 
 const checkUniqueUser = async (email: string, username: string) => {
     const existingUserByEmail = await prisma.users.findUnique({

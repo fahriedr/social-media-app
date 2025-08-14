@@ -1,6 +1,6 @@
 import { NextFunction, Response, Router, Request } from "express"
 import { AuthRequest, validateToken } from "../middleware/auth.middleware"
-import { getProfile, searchUser } from "../services/user/user.service"
+import { getProfile, searchUser } from "../services/user.service"
 
 
 const router = Router()
@@ -9,7 +9,7 @@ const router = Router()
 router.get('/profile', validateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
 
     try {
-        const response = await getProfile(req.user_id?.user.id)
+        const response = await getProfile(req.user_id as number)
 
         res.status(201).json({success: true, data: response})
     } catch (error) {

@@ -8,8 +8,6 @@ export const validate =
         (req: Request, res: Response, next: NextFunction) => {
             try {
 
-                console.log(req.body)
-
                 schema.parse(req.body);
                 next();
             } catch (err) {
