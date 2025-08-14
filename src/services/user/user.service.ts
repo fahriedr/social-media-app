@@ -28,3 +28,24 @@ export const getProfile = async (id: number): Promise<User>  => {
         avatar: user.avatar ?? undefined
     }
 }
+
+export const searchUser = async (keyword: string) => {
+
+    const user = await prisma.users.findMany({
+        where: {
+            OR: [
+                { name: { contains: keyword}},
+                { username: { contains: keyword}}
+            ]
+        },
+        select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true
+        }
+    })
+
+    return {user}
+
+}
