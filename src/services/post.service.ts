@@ -4,36 +4,107 @@ import { PostRequest, PostUpdateRequest } from "../shcemas/post.schema";
 import prisma from "../utils/prisma-client";
 import { HttpException } from "../models/http-exception";
 
-export const createPost = async (user_id: number, postData: PostRequest) => {
+
+export const getHomePost = async (userId: number) => {
+
+    const post = await prisma.posts.findMany({
+        where: {
+            user: {
+                followers: {
+                    some: {
+                        following_user_id: userId
+                    }
+                }
+            }
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    avatar: true
+                }
+            },
+            media: true,
+            _count: true
+        },
+        orderBy: {
+            timestamp: 'desc'
+        },
+        take: 10
+    })
+
+    return post
+}
+
+export const getUserPost = async (userId: number) => {
+    const post = await prisma.posts.findFirst({
+        where: {
+            user_id: userId
+        },
+        include: {
+            _count: true
+        }
+    })
+
+    return post
+}
+
+export const getExplorePost = async () => {
+
+    const post = await prisma.posts.findMany({
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    avatar: true
+                }
+            },
+        },
+        orderBy: {
+            likes: {
+                _count: 'desc'
+            }
+        },
+        take: 10
+    })
+
+    return post
+}
+
+export const createPost = async (userId: number, postData: PostRequest) => {
 
     const post = await prisma.posts.create({
         data: {
-            user_id: user_id,
+            user_id: userId,
             caption: postData.caption,
             timestamp: new Date()
         }
     })
 
-    let postMedia
-
     if (postData.media && postData.media.length > 0) {
-        postMedia = await uploadPostMedia(post.id, postData.media)
+        await uploadPostMedia(post.id, postData.media)
     }
 
     const postWithMedia = await prisma.posts.findUnique({
         where: { id: post.id },
-        include: { media: true }
+        include: { 
+            media: true,
+            comments: true,
+            _count: true
+        }
     });
 
     return postWithMedia
 
 }
 
-export const updatePost = async (user_id: number, post_id: number, postData: PostUpdateRequest) => {
+export const updatePost = async (userId: number, postId: number, postData: PostUpdateRequest) => {
 
     const post = await prisma.posts.findUnique({
         where: {
-            id: post_id
+            id: postId
         },
         select: {
             id: true,
@@ -46,21 +117,46 @@ export const updatePost = async (user_id: number, post_id: number, postData: Pos
         throw new HttpException(404, "Data not found")
     }
 
-    if (post.user_id !== user_id) {
+    if (post.user_id !== userId) {
         throw new HttpException(401, "Access denied")
     }
+
+    const updatePost = await prisma.posts.update({
+        where: {
+            id: post.id
+        },
+        data: {
+            caption: postData.caption ?? post.caption
+        },
+        include: { 
+            media: true,
+            comments: true,
+            _count: true
+        }
+    })
+
+    if (postData.media && postData.media?.length > 0) {
+
+        await removePostMedia(postId)
+        await uploadPostMedia(postId, postData.media)
+
+    } else {
+        await removePostMedia(postId)
+    }
+
+    return updatePost
 
 
 }
 
-const uploadPostMedia = async (post_id: number, media: string[]) => {
+const uploadPostMedia = async (postId: number, media: string[]) => {
 
     let postMedia
 
     postMedia = await prisma.post_media.createMany({
         data: media.map((media) => {
             return {
-                post_id: post_id,
+                post_id: postId,
                 link_url: media,
                 timestamp: new Date()
             }
@@ -68,4 +164,14 @@ const uploadPostMedia = async (post_id: number, media: string[]) => {
     })
 
     return postMedia
+}
+
+const removePostMedia = async (postId: number ) => {
+
+    await prisma.post_media.deleteMany({
+        where: {
+            post_id: postId
+        }
+    })
+
 }

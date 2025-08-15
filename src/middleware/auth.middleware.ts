@@ -6,6 +6,7 @@ export interface AuthRequest extends Request {
 }
 
 export const validateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+
     let token 
 
     if(
@@ -25,5 +26,7 @@ export const validateToken = (req: AuthRequest, res: Response, next: NextFunctio
         } catch (error) {
             res.status(401).json({message: "Not authorized"})
         }
+    } else {
+        res.status(401).json({message: "Not authorized"})
     }
 }

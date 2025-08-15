@@ -34,7 +34,7 @@ const checkUniqueUser = async (email: string, username: string) => {
     }
 }
 
-export const createUser = async (input: RegisterInput) => {
+export const createUser = async (input: RegisterInput): Promise<RegisteredUser> => {
 
     const { email, username, name, password, avatar, bio } = input
 
