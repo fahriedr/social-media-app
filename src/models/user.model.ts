@@ -8,9 +8,3 @@ export interface User {
     following: number,
     follower: number
 }
-
-interface Following {
-    id: number,
-    username: string,
-    avatar: string | null
-}

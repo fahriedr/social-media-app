@@ -149,6 +149,80 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
 
 }
 
+export const getPostById = async (postId: number) => {
+    const post = await prisma.posts.findUnique({
+        where: {
+            id: postId
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    avatar: true
+                }
+            },
+            media: true,
+            comments: {
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            username: true,
+                            avatar: true
+                        }
+                    }
+                },
+                take: 10,
+                orderBy: {
+                    timestamp: "desc"
+                }
+            },
+            _count: true
+        }
+    })
+
+
+    if (!post) {
+        throw new HttpException(404, "Post not found")
+    }
+
+    return post
+}
+
+
+export const deletePost = async (userId: number, postId: number) => {
+
+    const post = await prisma.posts.findUnique({
+        where: {
+            id: postId,
+        },
+        include: {
+            media: true
+        }
+    })
+
+    if (!post) {
+        throw new HttpException(404, "Data not found")
+    }
+
+    if (post.user_id !== userId) {
+        throw new HttpException(403, "Access Denied")
+    }
+
+    if( post.media.length > 0) {
+        await removePostMedia(post.id)
+    }
+
+    await prisma.posts.delete({
+        where: {
+            id: post.id
+        }
+    })
+
+    return true
+}
+
 const uploadPostMedia = async (postId: number, media: string[]) => {
 
     let postMedia

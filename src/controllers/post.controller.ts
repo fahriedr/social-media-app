@@ -2,7 +2,7 @@ import { NextFunction, Response, Router } from "express";
 import { validate } from "../middleware/validate.middleware";
 import { AuthRequest, validateToken } from "../middleware/auth.middleware";
 import { PostCreateSchema, PostUpdateSchema } from "../shcemas/post.schema";
-import { createPost, getExplorePost, getHomePost, updatePost } from "../services/post.service";
+import { createPost, deletePost, getExplorePost, getHomePost, getPostById, updatePost } from "../services/post.service";
 
 
 const router = Router()
@@ -58,5 +58,34 @@ router.get("/explorer", validateToken, async (req: AuthRequest, res: Response, n
         next(error)
     }
 })
+
+router.get("/:id", validateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const postId: number = +req.params["id"]
+
+        const response = await getPostById(postId)
+
+        res.status(201).json({success: true, message: "Data successfully retrieve", data: response})
+    } catch (error) {
+        next(error)
+    }
+})
+
+router.delete("/delete/:id", validateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        
+        const userId = req.user_id as number
+        const postId: number = +req.params["id"]
+
+        const response = await deletePost(userId, postId)
+
+        res.status(201).json({success: true, message: "Data successfully deleted", data: response})
+
+    } catch (error) {
+        next(error)
+    }
+})
+
+
 
 export default router
