@@ -4,12 +4,19 @@ import bodyParser from "body-parser";
 import cors from "cors"
 import { errorHandler } from "./middleware/error-handling.middleware";
 import { errorLogger } from "./middleware/error-logger.middleware";
+import cookieParser from "cookie-parser";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors())
+const FRONTEND_URL = process.env.FRONTEND_ORIGIN
+
+app.use(cors({
+    origin: FRONTEND_URL,
+    credentials: true,
+  }))
 app.use(bodyParser.json())
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(__dirname + '/assets'));
