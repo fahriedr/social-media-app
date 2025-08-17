@@ -2,12 +2,27 @@ import { NextFunction, Response, Router } from "express";
 import { validate } from "../middleware/validate.middleware";
 import { AuthRequest, validateToken } from "../middleware/auth.middleware";
 import { CommentCreateSchema } from "../shcemas/comment.schema";
-import { addComment } from "../services/comment.service";
+import { addComment, getComments } from "../services/comment.service";
 
 
 const router = Router()
 
-router.post("/create", validateToken,validate(CommentCreateSchema), async(req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/:postId", validateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+
+    try {
+
+        const postId: number = +req.params["postId"]
+
+        const response = await getComments(postId)
+        
+        res.status(201).json({success: true, message: "Success", data: response})
+        
+    } catch (error) {
+        next(error)
+    }
+})
+
+router.post("/create", validateToken, validate(CommentCreateSchema), async(req: AuthRequest, res: Response, next: NextFunction) => {
 
     try {
         
@@ -21,6 +36,5 @@ router.post("/create", validateToken,validate(CommentCreateSchema), async(req: A
         next(error)
     }
 })
-
 
 export default router

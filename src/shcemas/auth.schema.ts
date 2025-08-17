@@ -13,7 +13,7 @@ export type RegisterInputSchema = z.infer<typeof registerSchema>;
 
 
 export const loginSchema = z.object({
-    email: z.email({message: "Invalid email format"}).trim(),
+    username: z.string().trim(),
     password: z.string().min(6, { message: "Password must be at least 6 characters"}).trim()
 })
 

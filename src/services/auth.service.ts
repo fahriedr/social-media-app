@@ -48,8 +48,8 @@ export const createUser = async (input: RegisterInput): Promise<RegisteredUser> 
             username,
             name: name, 
             password: hashedPassword,
-            avatar: avatar ?? "",
-            bio: bio ?? "",
+            avatar: avatar ?? undefined,
+            bio: bio ?? null,
             last_login: new Date(),
             created_at: new Date()
         },
@@ -71,14 +71,14 @@ export const createUser = async (input: RegisterInput): Promise<RegisteredUser> 
 
 export const login = async (input: LoginInputSchema) => {
 
-    const { email, password} = input
+    const { username, password} = input
 
     const user = await prisma.users.findFirst({
         where: {
-            email
+            username
         },
         select: {
-            email: true,
+            username: true,
             password: true
         }
     })
@@ -95,7 +95,7 @@ export const login = async (input: LoginInputSchema) => {
 
    const updatedUser = await prisma.users.update({
         where: {
-            email: user.email
+            username: user.username
         },
         data: {
             last_login: new Date()
