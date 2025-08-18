@@ -2,7 +2,7 @@ import z from "zod";
 
 export const PostCreateSchema = z.object({
     caption: z.string(),
-    media: z.array(z.url()).optional()
+    media: z.array(z.string()).optional()
 })
 
 export const PostUpdateSchema = z.object({
