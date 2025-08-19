@@ -36,7 +36,7 @@ const checkUniqueUser = async (email: string, username: string) => {
     }
 }
 
-export const createUser = async (input: RegisterInput, res: Response): Promise<RegisteredUser> => {
+export const createUser = async (input: RegisterInput): Promise<RegisteredUser> => {
 
     const { email, username, name, password, avatar, bio } = input
 
@@ -65,18 +65,12 @@ export const createUser = async (input: RegisterInput, res: Response): Promise<R
         }
     })
 
-    const accessToken = signAccessToken(user.id);
-    const refreshToken = signRefreshToken(user.id);
+   
 
-    setRefreshCookie(res, refreshToken);
-
-    return {
-        ...user,
-        accessToken
-    }
+    return {...user}
 }
 
-export const login = async (input: LoginInputSchema, res: Response) => {
+export const login = async (input: LoginInputSchema) => {
 
     const { username, password } = input
 
@@ -118,14 +112,9 @@ export const login = async (input: LoginInputSchema, res: Response) => {
         }
     })
 
-    const accessToken = signAccessToken(user.id);
-    const refreshToken = signRefreshToken(user.id);
-
-    setRefreshCookie(res, refreshToken);
-
+   
     return {
-        ...updatedUser,
-        accessToken
+        ...updatedUser
     }
 }
 

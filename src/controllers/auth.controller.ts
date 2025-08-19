@@ -5,7 +5,7 @@ import { validate } from "../middleware/validate.middleware";
 import { LoginInputSchema, loginSchema, registerSchema } from "../shcemas/auth.schema";
 import { AuthRequest, validateToken } from "../middleware/auth.middleware";
 import jwt from 'jsonwebtoken'
-import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from "../utils/token.utils";
+import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, setRefreshCookie, signAccessToken, signRefreshToken } from "../utils/token.utils";
 
 
 const router = Router()
@@ -14,20 +14,31 @@ router.post('/login', validate(loginSchema), async (req: Request<{}, {}, LoginIn
 
     try {
 
-        const response = await login(req.body, res)
+        const user = await login(req.body)
 
-        res.status(201).json({ "message": "login", data: response })
+        const accessToken = signAccessToken(user.id);
+        const refreshToken = signRefreshToken(user.id);
+
+        setRefreshCookie(res, refreshToken);
+
+
+        res.status(201).json({ "message": "login", data: {...user, accessToken} })
     } catch (error) {
         next(error)
     }
-})
+}) 
 
 router.post('/register', validate(registerSchema), async (req: Request<{}, {}, RegisterInput>, res: Response, next: NextFunction) => {
 
     try {
-        const response = await createUser(req.body, res)
+        const user = await createUser(req.body)
 
-        res.status(201).json({ success: true, message: "Register Successfully", data: response, })
+        const accessToken = signAccessToken(user.id);
+        const refreshToken = signRefreshToken(user.id);
+
+        setRefreshCookie(res, refreshToken);
+
+        res.status(201).json({ success: true, message: "Register Successfully", data: {...user, accessToken}, })
 
     } catch (error) {
         next(error)

@@ -12,32 +12,34 @@ import { PrismaClient } from "@prisma/client";
 import { createUser } from "../src/services/auth.service";
 import { createPost } from '../src/services/post.service';
 import { RegisteredUser } from '../src/models/registered-user.model';
+import { Response } from 'express';
 
 
 const prisma = new PrismaClient();
 
-export const generateUser = async (): Promise<RegisteredUser> => {
-    return createUser({
-        username: randUserName(),
-        email: randEmail(),
-        password: randPassword(),
-        avatar: 'https://api.realworld.io/images/demo-avatar.png',
-        name: randFullName()
-    });
+export const generateUser = async (res: Response): Promise<RegisteredUser> => {
+
+  return createUser({
+    username: randUserName(),
+    email: randEmail(),
+    password: randPassword(),
+    avatar: 'https://api.realworld.io/images/demo-avatar.png',
+    name: randFullName()
+  }, res);
 }
 
 export const generatePost = async (id: number) => {
-    createPost(id, {
-        caption: randPhrase(),
-    })
+  createPost(id, {
+    caption: randPhrase(),
+  })
 }
 
 const main = async () => {
   try {
-    const users = await Promise.all(Array.from({length: 12}, () => generateUser()));
+    const users = await Promise.all(Array.from({ length: 12 }, () => generateUser()));
     users?.map(user => user);
     for await (const user of users) {
-      const posts = await Promise.all(Array.from({length: 12}, () => generatePost(user.id)));
+      const posts = await Promise.all(Array.from({ length: 12 }, () => generatePost(user.id)));
     }
   } catch (e) {
     console.error(e);

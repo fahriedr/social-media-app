@@ -4,5 +4,4 @@ export interface RegisteredUser {
   username: string;
   bio: string | null;
   avatar: string | null;
-  accessToken: string;
 }
