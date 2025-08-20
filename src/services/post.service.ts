@@ -9,13 +9,24 @@ export const getHomePost = async (userId: number) => {
 
     const post = await prisma.posts.findMany({
         where: {
-            user: {
-                followers: {
-                    some: {
-                        following_user_id: userId
-                    }
+            OR: [
+                {
+                    AND: [
+                        {
+                            user: {
+                                followers: {
+                                    some: {
+                                        following_user_id: userId
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    user_id: userId
                 }
-            }
+            ],
         },
         include: {
             user: {
@@ -89,7 +100,7 @@ export const createPost = async (userId: number, postData: PostRequest) => {
 
     const postWithMedia = await prisma.posts.findUnique({
         where: { id: post.id },
-        include: { 
+        include: {
             media: true,
             comments: true,
             _count: true
@@ -113,7 +124,7 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
         }
     })
 
-    if(!post) {
+    if (!post) {
         throw new HttpException(404, "Data not found")
     }
 
@@ -128,7 +139,7 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
         data: {
             caption: postData.caption ?? post.caption
         },
-        include: { 
+        include: {
             media: true,
             comments: true,
             _count: true
@@ -210,7 +221,7 @@ export const deletePost = async (userId: number, postId: number) => {
         throw new HttpException(403, "Access Denied")
     }
 
-    if( post.media.length > 0) {
+    if (post.media.length > 0) {
         await removePostMedia(post.id)
     }
 
@@ -240,7 +251,7 @@ const uploadPostMedia = async (postId: number, media: string[]) => {
     return postMedia
 }
 
-const removePostMedia = async (postId: number ) => {
+const removePostMedia = async (postId: number) => {
 
     await prisma.post_media.deleteMany({
         where: {

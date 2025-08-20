@@ -12,6 +12,8 @@ router.post("/create", validateToken, validate(PostCreateSchema), async (req: Au
     try {
 
         const user_id = req.user_id as number
+
+        console.log(req.body, "body")
         const response = await createPost(user_id, req.body)
 
         res.status(201).json({success: true, message: "Data successfully retrieve", data: response})

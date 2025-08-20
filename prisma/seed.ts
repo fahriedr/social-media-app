@@ -12,12 +12,11 @@ import { PrismaClient } from "@prisma/client";
 import { createUser } from "../src/services/auth.service";
 import { createPost } from '../src/services/post.service';
 import { RegisteredUser } from '../src/models/registered-user.model';
-import { Response } from 'express';
 
 
 const prisma = new PrismaClient();
 
-export const generateUser = async (res: Response): Promise<RegisteredUser> => {
+export const generateUser = async (): Promise<RegisteredUser> => {
 
   return createUser({
     username: randUserName(),
@@ -25,12 +24,13 @@ export const generateUser = async (res: Response): Promise<RegisteredUser> => {
     password: randPassword(),
     avatar: 'https://api.realworld.io/images/demo-avatar.png',
     name: randFullName()
-  }, res);
+  });
 }
 
 export const generatePost = async (id: number) => {
   createPost(id, {
     caption: randPhrase(),
+    media: ["https://i.pinimg.com/736x/de/70/e4/de70e47188c2922080f7b707cf732035.jpg"]
   })
 }
 
