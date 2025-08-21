@@ -3,85 +3,129 @@ import { AuthRequest } from "../middleware/auth.middleware";
 import { PostRequest, PostUpdateRequest } from "../shcemas/post.schema";
 import prisma from "../utils/prisma-client";
 import { HttpException } from "../models/http-exception";
+import { PostResponse } from "../models/post";
 
 
-export const getHomePost = async (userId: number) => {
+export const getHomePost = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {
 
-    const post = await prisma.posts.findMany({
-        where: {
-            OR: [
-                {
-                    AND: [
-                        {
-                            user: {
-                                followers: {
-                                    some: {
-                                        following_user_id: userId
+    const [posts, total] = await Promise.all([
+        prisma.posts.findMany({
+            where: {
+                OR: [
+                    {
+                        AND: [
+                            {
+                                user: {
+                                    followers: {
+                                        some: {
+                                            following_user_id: userId
+                                        }
                                     }
                                 }
                             }
-                        }
-                    ]
-                },
-                {
-                    user_id: userId
-                }
-            ],
-        },
-        include: {
-            user: {
-                select: {
-                    id: true,
-                    username: true,
-                    avatar: true
-                }
+                        ]
+                    },
+                    {
+                        user_id: userId
+                    }
+                ],
             },
-            media: true,
-            _count: true
-        },
-        orderBy: {
-            timestamp: 'desc'
-        },
-        take: 10
-    })
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar: true
+                    }
+                },
+                media: true,
+                _count: true
+            },
+            orderBy: {
+                timestamp: 'desc'
+            },
+            take: limit,
+            skip
+        }),
+        prisma.posts.count()
+    ])
 
-    return post
+
+    return {
+        posts,
+        pagination: {
+            total,
+            page: Math.ceil(skip / limit) + 1,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasNextPage: skip + limit < total,
+            hasPrevPage: skip > 0
+        }
+    }
 }
 
-export const getUserPost = async (userId: number) => {
+export const getUserPost = async (userId: number, skip: number = 0, limit: number = 10) => {
     const post = await prisma.posts.findFirst({
         where: {
             user_id: userId
         },
         include: {
             _count: true
+        },
+        skip,
+        take: limit,
+        orderBy: {
+            timestamp: 'desc'
         }
     })
 
     return post
 }
 
-export const getExplorePost = async () => {
+export const getExplorePost = async (skip: number = 0, limit: number = 10): Promise<PostResponse> => {
 
-    const post = await prisma.posts.findMany({
-        include: {
-            user: {
-                select: {
-                    id: true,
-                    username: true,
-                    avatar: true
+    const [posts, total] = await Promise.all([
+        prisma.posts.findMany({
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar: true
+                    }
+                },
+                media: true,
+                _count: {
+                    select: {
+                        likes: true,
+                        comments: true
+                    }
                 }
             },
-        },
-        orderBy: {
-            likes: {
-                _count: 'desc'
-            }
-        },
-        take: 10
-    })
+            skip,
+            take: limit,
+            orderBy: {
+                likes: {
+                    _count: 'desc'
+                }
+            },
+        }),
+        prisma.posts.count()
+    ])
 
-    return post
+
+
+    return {
+        posts,
+        pagination: {
+            total,
+            page: Math.ceil(skip / limit) + 1,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasNextPage: skip + limit < total,
+            hasPrevPage: skip > 0
+        }
+    }
 }
 
 export const createPost = async (userId: number, postData: PostRequest) => {
@@ -201,7 +245,6 @@ export const getPostById = async (postId: number) => {
     return post
 }
 
-
 export const deletePost = async (userId: number, postId: number) => {
 
     const post = await prisma.posts.findUnique({
@@ -232,6 +275,60 @@ export const deletePost = async (userId: number, postId: number) => {
     })
 
     return true
+}
+
+export const bookmarkPost = async (userId: number, postId: number) => {
+    const post = await prisma.posts.findUnique({
+        where: {
+            id: postId
+        }
+    })
+
+    if (!post) {
+        throw new HttpException(404, "Post not found")
+    }
+
+    await prisma.post_saved.create({
+        data: {
+            user_id: userId,
+            post_id: postId,
+            timestamp: new Date()
+        }
+    })
+
+    return true
+}
+
+export const unbookmarkPost = async (userId: number, postId: number) => {
+    const post = await prisma.posts.findUnique({
+        where: {
+            id: postId
+        }
+    })
+
+    if (!post) {
+        throw new HttpException(404, "Post not found")
+    }
+
+    const checkBookmark = await prisma.post_saved.findFirst({
+        where: {
+            user_id: userId,
+            post_id: postId
+        }
+    })
+
+    if (!checkBookmark) {
+        throw new HttpException(422, "Post not bookmarked")
+    }
+
+    await prisma.post_saved.delete({
+        where: {
+            id: checkBookmark.id
+        }
+    })
+
+    return true
+
 }
 
 const uploadPostMedia = async (postId: number, media: string[]) => {

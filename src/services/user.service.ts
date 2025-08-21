@@ -104,6 +104,10 @@ export const searchUser = async (keyword: string) => {
 
 export const followUser = async (userId: number, followedUserId: number) => {
 
+    if(userId === followedUserId) {
+        throw new HttpException(422, "You cannot follow yourself")
+    }
+
     const followedUser = await prisma.users.findFirst({
         where: {
             id: followedUserId
@@ -173,4 +177,44 @@ export const unfollowUser = async (userId: number, followedUserId: number) => {
     })
 
     return true
+}
+
+export const getFollowers = async (userId: number) => {
+    const followers = await prisma.follows.findMany({
+        where: {
+            followed_user_id: userId
+        },
+        include: {
+            following_user: {
+                select: {
+                    id: true,
+                    username: true,
+                    avatar: true
+                }
+            }
+        }
+    })
+
+    return followers.map(follow => follow.following_user)
+}
+
+export const getFollowed = async (userId: number) => {
+
+    console.log(userId, "userId in getFollowed")
+    const following = await prisma.follows.findMany({
+        where: {
+            following_user_id: userId
+        },
+        include: {
+            followed_user: {
+                select: {
+                    id: true,
+                    username: true,
+                    avatar: true
+                }
+            }
+        }
+    })
+
+    return following.map(follow => follow.followed_user)
 }

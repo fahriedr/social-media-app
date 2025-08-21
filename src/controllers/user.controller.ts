@@ -1,8 +1,9 @@
 import { NextFunction, Response, Router, Request } from "express"
 import { AuthRequest, validateToken } from "../middleware/auth.middleware"
-import { followUser, getProfile, searchUser, unfollowUser, updateProfile } from "../services/user.service"
+import { followUser, getFollowed, getFollowers, getProfile, searchUser, unfollowUser, updateProfile } from "../services/user.service"
 import { validate } from "../middleware/validate.middleware"
 import { updateUserSchema } from "../shcemas/user.schema"
+import { validateIdParam } from "../utils/helper"
 
 
 const router = Router()
@@ -48,7 +49,7 @@ router.get('/search', async (req: Request, res: Response, next: NextFunction) =>
     }
 })
 
-router.post('/follow/:id', validateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/follow/:id', validateToken, validateIdParam, async (req: AuthRequest, res: Response, next: NextFunction) => {
 
     try {
         const user_id = req.user_id as number
@@ -63,7 +64,7 @@ router.post('/follow/:id', validateToken, async (req: AuthRequest, res: Response
     }
 })
 
-router.post('/unfollow/:id', validateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/unfollow/:id', validateToken, validateIdParam, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const user_id = req.user_id as number
         const user_followed_id: number = +req.params["id"]
@@ -76,5 +77,40 @@ router.post('/unfollow/:id', validateToken, async (req: AuthRequest, res: Respon
         next(error)
     }
 })
+
+router.get('/followers/:id', validateToken, validateIdParam,  async (req: AuthRequest, res: Response, next: NextFunction) => {
+
+    try {
+
+        if(!req.params["id"]) {
+            throw new Error("User ID is required")
+        }
+
+        const user_id: number = +req.params["id"] as number
+
+        const response = await getFollowers(user_id)
+
+        res.status(201).json({success: true, data: response})
+
+    } catch (error) {
+        next(error)
+    }
+})
+
+router.get('/followed/:id', validateToken, validateIdParam,  async (req: AuthRequest, res: Response, next: NextFunction) => {
+
+    try {
+        
+        const user_id: number = +req.params["id"] as number
+
+        const response = await getFollowed(user_id)
+
+        res.status(201).json({success: true, data: response})
+
+    } catch (error) {
+        next(error)
+    }
+})
+
 
 export default router

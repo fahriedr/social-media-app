@@ -24,6 +24,7 @@ model users {
   likes     likes[]    @relation("UserLikes")
   following follows[]  @relation("Following")
   followers follows[]  @relation("Followers")
+  post_saved     post_saved[] @relation("UserSavedPosts")
 }
 
 model posts {
@@ -37,6 +38,7 @@ model posts {
   media    post_media[] @relation("PostMedia")
   likes    likes[]      @relation("PostLikes")
   comments comments[]   @relation("PostComments")
+  saved    post_saved[] @relation("PostSaved")
 }
 
 model post_media {
@@ -81,4 +83,15 @@ model follows {
   //Relations
   following_user users @relation("Following", fields: [following_user_id], references: [id])
   followed_user  users @relation("Followers", fields: [followed_user_id], references: [id])
+}
+
+model post_saved {
+  id        Int      @id @default(autoincrement())
+  post_id   Int
+  user_id   Int
+  timestamp DateTime
+
+  //Relations
+  user users @relation("UserSavedPosts", fields: [user_id], onDelete: Cascade, references: [id])
+  post posts @relation("PostSaved", fields: [post_id], onDelete: Cascade, references: [id])
 }
