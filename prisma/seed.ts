@@ -1,12 +1,8 @@
 import {
   randEmail,
   randFullName,
-  randLines,
-  randParagraph,
-  randPassword, randPhrase,
-  randTextRange,
+  randPhrase,
   randUserName,
-  randWord
 } from '@ngneat/falso';
 import { PrismaClient } from "@prisma/client";
 import { createUser } from "../src/services/auth.service";

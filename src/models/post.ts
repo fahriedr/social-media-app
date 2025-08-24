@@ -13,6 +13,7 @@ export interface Posts {
         likes: number;
         comments: number;
     };
+    isLiked?: boolean
 }
 
 interface Media {

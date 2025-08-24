@@ -19,12 +19,12 @@ model users {
   created_at DateTime
 
   //Relations
-  posts     posts[]    @relation("UserPosts")
-  comments  comments[] @relation("UserComments")
-  likes     likes[]    @relation("UserLikes")
-  following follows[]  @relation("Following")
-  followers follows[]  @relation("Followers")
-  post_saved     post_saved[] @relation("UserSavedPosts")
+  posts           posts[]          @relation("UserPosts")
+  comments        comments[]       @relation("UserComments")
+  likes           likes[]          @relation("UserLikes")
+  following       follows[]        @relation("Following")
+  followers       follows[]        @relation("Followers")
+  post_bookmarked post_bookmarks[] @relation("UserBookmarkedPosts")
 }
 
 model posts {
@@ -34,11 +34,11 @@ model posts {
   timestamp DateTime
 
   //Relations
-  user     users        @relation("UserPosts", fields: [user_id], onDelete: Cascade, references: [id])
-  media    post_media[] @relation("PostMedia")
-  likes    likes[]      @relation("PostLikes")
-  comments comments[]   @relation("PostComments")
-  saved    post_saved[] @relation("PostSaved")
+  user      users            @relation("UserPosts", fields: [user_id], onDelete: Cascade, references: [id])
+  media     post_media[]     @relation("PostMedia")
+  likes     likes[]          @relation("PostLikes")
+  comments  comments[]       @relation("PostComments")
+  bookmarks post_bookmarks[] @relation("PostBookmarked")
 }
 
 model post_media {
@@ -85,13 +85,13 @@ model follows {
   followed_user  users @relation("Followers", fields: [followed_user_id], references: [id])
 }
 
-model post_saved {
+model post_bookmarks {
   id        Int      @id @default(autoincrement())
   post_id   Int
   user_id   Int
   timestamp DateTime
 
   //Relations
-  user users @relation("UserSavedPosts", fields: [user_id], onDelete: Cascade, references: [id])
-  post posts @relation("PostSaved", fields: [post_id], onDelete: Cascade, references: [id])
+  user users @relation("UserBookmarkedPosts", fields: [user_id], onDelete: Cascade, references: [id])
+  post posts @relation("PostBookmarked", fields: [post_id], onDelete: Cascade, references: [id])
 }

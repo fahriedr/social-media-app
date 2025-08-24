@@ -5,7 +5,7 @@ export const validateIdParam = async (req: Request, res: Response, next: NextFun
     const { id } = req.params;
 
     // check if id exists and is a number
-    if (!id || typeof id !== 'number' || isNaN(Number(id))) {
+    if (!id || isNaN(Number(id))) {
         return res.status(400).json({ error: "Invalid or missing ID parameter" });
     }
 

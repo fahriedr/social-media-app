@@ -200,7 +200,6 @@ export const getFollowers = async (userId: number) => {
 
 export const getFollowed = async (userId: number) => {
 
-    console.log(userId, "userId in getFollowed")
     const following = await prisma.follows.findMany({
         where: {
             following_user_id: userId

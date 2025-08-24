@@ -9,6 +9,7 @@ import { PostResponse } from "../models/post";
 export const getHomePost = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {
 
     const [posts, total] = await Promise.all([
+        //add isLiked property
         prisma.posts.findMany({
             where: {
                 OR: [
@@ -39,7 +40,19 @@ export const getHomePost = async (userId: number, skip: number = 0, limit: numbe
                     }
                 },
                 media: true,
-                _count: true
+                _count: true,
+                likes: {
+                    where: { user_id: userId }, // only include if current user liked
+                    select: { id: true }
+                },
+                bookmarks: {
+                    where: {
+                        user_id: userId
+                    },
+                    select: {
+                        id: true
+                    }
+                }
             },
             orderBy: {
                 timestamp: 'desc'
@@ -50,9 +63,15 @@ export const getHomePost = async (userId: number, skip: number = 0, limit: numbe
         prisma.posts.count()
     ])
 
+    const postsWithIsLiked = posts.map(({likes, bookmarks, ...post}) => ({
+        ...post,
+        isLiked: likes.length > 0,
+        isBookmarked: bookmarks && bookmarks.length > 0
+    }))
+
 
     return {
-        posts,
+        posts: postsWithIsLiked,
         pagination: {
             total,
             page: Math.ceil(skip / limit) + 1,
@@ -288,7 +307,7 @@ export const bookmarkPost = async (userId: number, postId: number) => {
         throw new HttpException(404, "Post not found")
     }
 
-    await prisma.post_saved.create({
+    await prisma.post_bookmarks.create({
         data: {
             user_id: userId,
             post_id: postId,
@@ -310,7 +329,7 @@ export const unbookmarkPost = async (userId: number, postId: number) => {
         throw new HttpException(404, "Post not found")
     }
 
-    const checkBookmark = await prisma.post_saved.findFirst({
+    const checkBookmark = await prisma.post_bookmarks.findFirst({
         where: {
             user_id: userId,
             post_id: postId
@@ -321,7 +340,7 @@ export const unbookmarkPost = async (userId: number, postId: number) => {
         throw new HttpException(422, "Post not bookmarked")
     }
 
-    await prisma.post_saved.delete({
+    await prisma.post_bookmarks.delete({
         where: {
             id: checkBookmark.id
         }

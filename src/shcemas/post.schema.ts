@@ -6,7 +6,6 @@ export const PostCreateSchema = z.object({
 })
 
 export const PostUpdateSchema = z.object({
-    id: z.number(),
     caption: z.string().optional(),
     media: z.array( z.string()).optional()
 })
