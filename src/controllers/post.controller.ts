@@ -64,7 +64,9 @@ router.get("/explorer", validateToken, async (req: AuthRequest, res: Response, n
         const skip = (page - 1) * limit;
         const take = limit;
 
-        const data = await getExplorePost(skip, take)
+        const userId = req.user_id as number
+
+        const data = await getExplorePost(userId, skip, take)
 
         res.status(201).json({success: true, message: "Data successfully retrieve", data})
     } catch (error) {
@@ -75,10 +77,11 @@ router.get("/explorer", validateToken, async (req: AuthRequest, res: Response, n
 router.get("/:id", validateToken, validateIdParam, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const postId: number = +req.params["id"]
+        const userId = req.user_id as number
 
-        const response = await getPostById(postId)
+        const response = await getPostById(postId, userId)
 
-        res.status(201).json({success: true, message: "Data successfully retrieve", data: response})
+        res.status(201).json({success: true, message: "Data successfully retrieve", response})
     } catch (error) {
         next(error)
     }

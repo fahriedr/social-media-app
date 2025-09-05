@@ -4,7 +4,7 @@ import { followUser, getFollowed, getFollowers, getProfile, searchUser, unfollow
 import { validate } from "../middleware/validate.middleware"
 import { updateUserSchema } from "../shcemas/user.schema"
 import { validateIdParam } from "../utils/helper"
-
+import logger from '../utils/logger';
 
 const router = Router()
 

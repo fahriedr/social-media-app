@@ -3,7 +3,7 @@ import { AuthRequest } from "../middleware/auth.middleware";
 import { PostRequest, PostUpdateRequest } from "../shcemas/post.schema";
 import prisma from "../utils/prisma-client";
 import { HttpException } from "../models/http-exception";
-import { PostResponse } from "../models/post";
+import { PostDetailResponse, PostResponse } from "../models/post";
 
 
 export const getHomePost = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {
@@ -101,7 +101,7 @@ export const getUserPost = async (userId: number, skip: number = 0, limit: numbe
     return post
 }
 
-export const getExplorePost = async (skip: number = 0, limit: number = 10): Promise<PostResponse> => {
+export const getExplorePost = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {
 
     const [posts, total] = await Promise.all([
         prisma.posts.findMany({
@@ -119,6 +119,18 @@ export const getExplorePost = async (skip: number = 0, limit: number = 10): Prom
                         likes: true,
                         comments: true
                     }
+                },
+                likes: {
+                    where: { user_id: userId }, // only include if current user liked
+                    select: { id: true }
+                },
+                bookmarks: {
+                    where: {
+                        user_id: userId
+                    },
+                    select: {
+                        id: true
+                    }
                 }
             },
             skip,
@@ -132,10 +144,14 @@ export const getExplorePost = async (skip: number = 0, limit: number = 10): Prom
         prisma.posts.count()
     ])
 
-
+    const postsWithIsLiked = posts.map(({likes, bookmarks, ...post}) => ({
+        ...post,
+        isLiked: likes.length > 0,
+        isBookmarked: bookmarks && bookmarks.length > 0
+    }))
 
     return {
-        posts,
+        posts: postsWithIsLiked,
         pagination: {
             total,
             page: Math.ceil(skip / limit) + 1,
@@ -153,6 +169,7 @@ export const createPost = async (userId: number, postData: PostRequest) => {
         data: {
             user_id: userId,
             caption: postData.caption,
+            unique_id: crypto.randomUUID(),
             timestamp: new Date()
         }
     })
@@ -223,7 +240,7 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
 
 }
 
-export const getPostById = async (postId: number) => {
+export const getPostById = async (postId: number, userId: number): Promise<PostDetailResponse> => {
     const post = await prisma.posts.findUnique({
         where: {
             id: postId
@@ -237,23 +254,20 @@ export const getPostById = async (postId: number) => {
                 }
             },
             media: true,
-            comments: {
-                include: {
-                    user: {
-                        select: {
-                            id: true,
-                            username: true,
-                            avatar: true
-                        }
-                    }
-                },
-                take: 10,
-                orderBy: {
-                    timestamp: "desc"
-                }
+            _count: true,
+            likes: {
+                where: { user_id: userId }, // only include if current user liked
+                select: { id: true }
             },
-            _count: true
-        }
+            bookmarks: {
+                where: {
+                    user_id: userId
+                },
+                select: {
+                    id: true
+                }
+            }
+        },
     })
 
 
@@ -261,7 +275,13 @@ export const getPostById = async (postId: number) => {
         throw new HttpException(404, "Post not found")
     }
 
-    return post
+    const postsWithIsLiked = {
+        ...post,
+        isLiked: post.likes.length > 0,
+        isBookmarked: post.bookmarks.length > 0
+    }
+
+    return {post: postsWithIsLiked}
 }
 
 export const deletePost = async (userId: number, postId: number) => {

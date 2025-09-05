@@ -30,6 +30,7 @@ model users {
 model posts {
   id        Int      @id @default(autoincrement())
   user_id   Int
+  unique_id String?
   caption   String
   timestamp DateTime
 

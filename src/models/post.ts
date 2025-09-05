@@ -13,7 +13,7 @@ export interface Posts {
         likes: number;
         comments: number;
     };
-    isLiked?: boolean
+    isLiked?: boolean,
 }
 
 interface Media {
@@ -35,4 +35,8 @@ export interface Pagination {
 export interface PostResponse {
     posts: Posts[];
     pagination: Pagination;
+}
+
+export interface PostDetailResponse {
+    post: Posts
 }

@@ -2,7 +2,7 @@ import { HttpException } from "../models/http-exception"
 import { User } from "../models/user.model"
 import { UpdateUserInput } from "../shcemas/user.schema"
 import prisma from "../utils/prisma-client"
-
+import { userEvents, UserEvents } from "../events/user.event";
 export const getProfile = async (id: number): Promise<User> => {
     
     const user = await prisma.users.findFirst({
