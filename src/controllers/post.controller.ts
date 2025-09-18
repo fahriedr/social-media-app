@@ -1,8 +1,8 @@
 import { NextFunction, Response, Router } from "express";
 import { validate } from "../middleware/validate.middleware";
 import { AuthRequest, validateToken } from "../middleware/auth.middleware";
-import { PostCreateSchema, PostUpdateSchema } from "../shcemas/post.schema";
-import { bookmarkPost, createPost, deletePost, getExplorePost, getHomePost, getPostById, unbookmarkPost, updatePost } from "../services/post.service";
+import { PostCreateSchema, PostMediaSchema, PostUpdateSchema } from "../shcemas/post.schema";
+import { addImageToPost, bookmarkPost, createPost, deletePost, getExplorePost, getHomePost, getPostById, unbookmarkPost, updatePost } from "../services/post.service";
 import { validateIdParam } from "../utils/helper";
 
 
@@ -31,6 +31,18 @@ router.put("/update/:id", validateToken, validate(PostUpdateSchema), validateIdP
         const response = await updatePost(userId, postId, req.body)
 
         res.status(201).json({success: true, message: "Data successfully retrieve", data: response})
+    } catch (error) {
+        next(error)
+    }
+
+})
+
+
+router.post("/signed-url", validateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user_id as number
+        const { post_unique_id, file_ext } = req.body
+
     } catch (error) {
         next(error)
     }
@@ -128,6 +140,18 @@ router.delete("/bookmark/:id", validateToken, validateIdParam, async (req: AuthR
     }
 })
 
+
+router.post("/add-images", validateToken, validate(PostMediaSchema), async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const {post_id, media_url} = req.body
+
+        const response = await addImageToPost(post_id, media_url)
+
+        res.status(201).json({success: true, message: "Update Post Media successfully", data: response})
+    } catch (error) {
+        next(error)
+    }
+})
 
 
 export default router

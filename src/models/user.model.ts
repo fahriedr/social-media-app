@@ -5,6 +5,6 @@ export interface User {
     username: string;
     bio: string | null;
     avatar: string | null;
-    following: number,
-    follower: number
+    following: number;
+    follower: number;
 }

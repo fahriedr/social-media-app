@@ -2,12 +2,14 @@ export interface Posts {
     id: number;
     user_id: number;
     caption: string;
+    unique_id: string | null;
     timestamp: Date;
-    media: Media[];
+    media: string[];
     user: {
         id: number;
         username: string;
         avatar: string | null;
+        isFollowed?: boolean
     };
     _count: {
         likes: number;
@@ -39,4 +41,9 @@ export interface PostResponse {
 
 export interface PostDetailResponse {
     post: Posts
+}
+
+export interface SupabaseResponse {
+    signedUrl: string;
+    path: string
 }

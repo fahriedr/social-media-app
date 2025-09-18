@@ -3,7 +3,8 @@ import { AuthRequest } from "../middleware/auth.middleware";
 import { PostRequest, PostUpdateRequest } from "../shcemas/post.schema";
 import prisma from "../utils/prisma-client";
 import { HttpException } from "../models/http-exception";
-import { PostDetailResponse, PostResponse } from "../models/post";
+import { PostDetailResponse, PostResponse, SupabaseResponse } from "../models/post";
+import { createSignedUrl, deletePostImages } from "../utils/supabase";
 
 
 export const getHomePost = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {
@@ -36,7 +37,15 @@ export const getHomePost = async (userId: number, skip: number = 0, limit: numbe
                     select: {
                         id: true,
                         username: true,
-                        avatar: true
+                        avatar: true,
+                        followers: {
+                            where: {
+                                following_user_id: userId
+                            },
+                            select: {
+                                id: true
+                            }
+                        }
                     }
                 },
                 media: true,
@@ -63,8 +72,13 @@ export const getHomePost = async (userId: number, skip: number = 0, limit: numbe
         prisma.posts.count()
     ])
 
-    const postsWithIsLiked = posts.map(({likes, bookmarks, ...post}) => ({
+    const postsWithIsLiked = posts.map(({likes, bookmarks, user, media, ...post}) => ({
         ...post,
+        user : {
+            ...user,
+            isFollowed: user.followers.length > 0,
+        },
+        media: media.map(data => data.link_url),
         isLiked: likes.length > 0,
         isBookmarked: bookmarks && bookmarks.length > 0
     }))
@@ -110,8 +124,16 @@ export const getExplorePost = async (userId: number, skip: number = 0, limit: nu
                     select: {
                         id: true,
                         username: true,
-                        avatar: true
-                    }
+                        avatar: true,
+                        followers: {
+                            where: {
+                                following_user_id: userId
+                            },
+                            select: {
+                                id: true
+                            }
+                        }
+                    },
                 },
                 media: true,
                 _count: {
@@ -136,22 +158,25 @@ export const getExplorePost = async (userId: number, skip: number = 0, limit: nu
             skip,
             take: limit,
             orderBy: {
-                likes: {
-                    _count: 'desc'
-                }
+                timestamp: "desc"
             },
         }),
         prisma.posts.count()
     ])
 
-    const postsWithIsLiked = posts.map(({likes, bookmarks, ...post}) => ({
+    const postsWithFlags = posts.map(({ likes, bookmarks, user, media, ...post }) => ({
         ...post,
+        user: {
+            ...user,
+            isFollowed: user.followers.length > 0,
+        },
+        media: media.map(data => data.link_url),
         isLiked: likes.length > 0,
-        isBookmarked: bookmarks && bookmarks.length > 0
-    }))
+        isBookmarked: bookmarks.length > 0,
+    }));
 
     return {
-        posts: postsWithIsLiked,
+        posts: postsWithFlags,
         pagination: {
             total,
             page: Math.ceil(skip / limit) + 1,
@@ -174,20 +199,27 @@ export const createPost = async (userId: number, postData: PostRequest) => {
         }
     })
 
+    let supabaseResponse: SupabaseResponse[] = []
+
     if (postData.media && postData.media.length > 0) {
-        await uploadPostMedia(post.id, postData.media)
+        for (const file of postData.media ) {
+            const res = await createSignedUrl(userId, post.unique_id!, file)
+            supabaseResponse.push(res)
+        }
     }
 
     const postWithMedia = await prisma.posts.findUnique({
         where: { id: post.id },
         include: {
-            media: true,
             comments: true,
             _count: true
         }
     });
 
-    return postWithMedia
+    return {
+        ...postWithMedia,
+        signedUrl: supabaseResponse
+    }
 
 }
 
@@ -197,10 +229,9 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
         where: {
             id: postId
         },
-        select: {
-            id: true,
-            caption: true,
-            user_id: true
+        include: {
+            media: true,
+            _count: true
         }
     })
 
@@ -210,6 +241,20 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
 
     if (post.user_id !== userId) {
         throw new HttpException(401, "Access denied")
+    }
+
+    if (postData.media.length < post._count.media) {
+        await deletePostImages(postId)
+        await addImageToPost(postId, postData.media, false)
+    }
+
+    let supabaseResponse: SupabaseResponse[] = []
+
+    if (postData.new_media && postData.new_media.length > 0) {
+        for (const file of postData.media ) {
+            const res = await createSignedUrl(userId, post.unique_id!, file)
+            supabaseResponse.push(res)
+        }
     }
 
     const updatePost = await prisma.posts.update({
@@ -226,16 +271,9 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
         }
     })
 
-    if (postData.media && postData.media?.length > 0) {
-
-        await removePostMedia(postId)
-        await uploadPostMedia(postId, postData.media)
-
-    } else {
-        await removePostMedia(postId)
+    return {
+        ...updatePost,
     }
-
-    return updatePost
 
 
 }
@@ -277,6 +315,7 @@ export const getPostById = async (postId: number, userId: number): Promise<PostD
 
     const postsWithIsLiked = {
         ...post,
+        media: post.media.map(data => data.link_url),
         isLiked: post.likes.length > 0,
         isBookmarked: post.bookmarks.length > 0
     }
@@ -304,7 +343,7 @@ export const deletePost = async (userId: number, postId: number) => {
     }
 
     if (post.media.length > 0) {
-        await removePostMedia(post.id)
+        // await removePostMedia(post.id)
     }
 
     await prisma.posts.delete({
@@ -370,15 +409,17 @@ export const unbookmarkPost = async (userId: number, postId: number) => {
 
 }
 
-const uploadPostMedia = async (postId: number, media: string[]) => {
+export const addImageToPost = async (postId: number, media: string[], isNew = true) => {
 
     let postMedia
+
+    const prefixPath = `${process.env.SUPABASE_URL}${process.env.SUPABASE_PREFIX_PATH}${process.env.SUPABASE_BUCKET_NAME}`
 
     postMedia = await prisma.post_media.createMany({
         data: media.map((media) => {
             return {
                 post_id: postId,
-                link_url: media,
+                link_url: isNew ? prefixPath + media : media,
                 timestamp: new Date()
             }
         })
@@ -387,12 +428,14 @@ const uploadPostMedia = async (postId: number, media: string[]) => {
     return postMedia
 }
 
-const removePostMedia = async (postId: number) => {
+const removePostMedia = async (postId: number, image: string[]) => {
 
-    await prisma.post_media.deleteMany({
+    //Delete media in supabase
+
+    // Get Old images
+    const old_images = prisma.post_media.deleteMany({
         where: {
             post_id: postId
         }
     })
-
 }
