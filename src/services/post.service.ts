@@ -251,7 +251,7 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
     let supabaseResponse: SupabaseResponse[] = []
 
     if (postData.new_media && postData.new_media.length > 0) {
-        for (const file of postData.media ) {
+        for (const file of postData.new_media ) {
             const res = await createSignedUrl(userId, post.unique_id!, file)
             supabaseResponse.push(res)
         }
@@ -273,6 +273,7 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
 
     return {
         ...updatePost,
+        signedUrl: supabaseResponse
     }
 
 
@@ -412,6 +413,8 @@ export const unbookmarkPost = async (userId: number, postId: number) => {
 export const addImageToPost = async (postId: number, media: string[], isNew = true) => {
 
     let postMedia
+
+    console.log(media, "media")
 
     const prefixPath = `${process.env.SUPABASE_URL}${process.env.SUPABASE_PREFIX_PATH}${process.env.SUPABASE_BUCKET_NAME}`
 
