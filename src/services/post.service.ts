@@ -4,7 +4,7 @@ import { PostRequest, PostUpdateRequest } from "../shcemas/post.schema";
 import prisma from "../utils/prisma-client";
 import { HttpException } from "../models/http-exception";
 import { PostDetailResponse, PostResponse, SupabaseResponse } from "../models/post";
-import { createSignedUrl, deletePostImages } from "../utils/supabase";
+import { createSignedUrl, deleteImage, deletePostImages } from "../utils/supabase";
 
 
 export const getHomePost = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {
@@ -243,18 +243,31 @@ export const updatePost = async (userId: number, postId: number, postData: PostU
         throw new HttpException(401, "Access denied")
     }
 
+    // Delete removed images
     if (postData.media.length < post._count.media) {
-        await deletePostImages(postId)
-        await addImageToPost(postId, postData.media, false)
+
+        const deleted_img = post.media.filter(data => !postData.media.includes(data.link_url)).map(img => img.id)
+
+        for (const id of deleted_img) {
+            await deleteImage(id)
+        }
     }
 
     let supabaseResponse: SupabaseResponse[] = []
 
+    // Add new images
     if (postData.new_media && postData.new_media.length > 0) {
         for (const file of postData.new_media ) {
             const res = await createSignedUrl(userId, post.unique_id!, file)
             supabaseResponse.push(res)
         }
+    }
+    
+    // Add new images to DB
+    if (supabaseResponse.length > 0) {
+        const newImages = supabaseResponse.map(img => img.path)
+
+        await addImageToPost(post.id, newImages, true)
     }
 
     const updatePost = await prisma.posts.update({
@@ -413,8 +426,6 @@ export const unbookmarkPost = async (userId: number, postId: number) => {
 export const addImageToPost = async (postId: number, media: string[], isNew = true) => {
 
     let postMedia
-
-    console.log(media, "media")
 
     const prefixPath = `${process.env.SUPABASE_URL}${process.env.SUPABASE_PREFIX_PATH}${process.env.SUPABASE_BUCKET_NAME}`
 

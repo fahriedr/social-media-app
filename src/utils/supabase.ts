@@ -30,6 +30,31 @@ export const createSignedUrl = async (userId: number, postUniqueId: string, file
 
 }
 
+export const deleteImage = async (postMediaId: number) => {
+
+    const image = await prisma.post_media.findUnique({
+        where: {
+            id: postMediaId
+        }
+    })
+
+    if (image) {
+        await supabase.storage.from(process.env.SUPABASE_BUCKET_NAME!).remove([image.link_url])
+
+        await prisma.post_media.delete({
+            where: {
+                id: postMediaId
+            }
+        })
+
+        return true
+    } else {
+        throw new HttpException(404, "Image not found")
+    }
+
+
+}
+
 export const deletePostImages = async (postId: number) => {
     
     // Get Old images
