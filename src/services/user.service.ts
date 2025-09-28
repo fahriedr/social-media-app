@@ -217,3 +217,36 @@ export const getFollowed = async (userId: number) => {
 
     return following.map(follow => follow.followed_user)
 }
+
+export const getUserSuggestions = async (userId: number, limit: number) => {
+
+    const users = await prisma.users.findMany({
+        take: limit,
+        select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true
+        },
+        where: {
+            AND: [
+                {
+                    id: {
+                        not: userId // Exclude the current user
+                    }
+                },
+                {
+                    NOT: {
+                        followers: {
+                            some: {
+                                following_user_id: userId
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    })
+
+    return users
+}

@@ -7,6 +7,7 @@ import { errorLogger } from "./middleware/error-logger.middleware";
 import cookieParser from "cookie-parser";
 
 import "./listeners/user.listener"
+import { any } from "zod";
 
 const app = express();
 const port = process.env.PORT || 3000;

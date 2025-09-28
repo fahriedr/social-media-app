@@ -5,6 +5,8 @@ import prisma from "../utils/prisma-client";
 import { HttpException } from "../models/http-exception";
 import { PostDetailResponse, PostResponse, SupabaseResponse } from "../models/post";
 import { createSignedUrl, deleteImage, deletePostImages } from "../utils/supabase";
+import _ from "lodash";
+import { is } from "zod/v4/locales";
 
 
 export const getHomePost = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {
@@ -203,8 +205,15 @@ export const createPost = async (userId: number, postData: PostRequest) => {
 
     if (postData.media && postData.media.length > 0) {
         for (const file of postData.media ) {
-            const res = await createSignedUrl(userId, post.unique_id!, file)
-            supabaseResponse.push(res)
+
+            const isValid = await isExtention(file)
+
+            if (isValid) {
+                const res = await createSignedUrl(userId, post.unique_id!, file)
+                supabaseResponse.push(res)
+            } else {
+                saveImageToDB(post.id, file)
+            }
         }
     }
 
@@ -442,6 +451,90 @@ export const addImageToPost = async (postId: number, media: string[], isNew = tr
     return postMedia
 }
 
+export const getBookmarkedPosts = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {
+
+    const [posts, total] = await Promise.all([
+        prisma.post_bookmarks.findMany({
+            where: {
+                user_id: userId
+            },
+            include: {
+                post: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                username: true,
+                                avatar: true,
+                                followers: {
+                                    where: {
+                                        following_user_id: userId
+                                    },
+                                    select: {
+                                        id: true
+                                    }
+                                }
+                            }
+                        },
+                        media: true,
+                        _count: {
+                            select: {
+                                likes: true,
+                                comments: true
+                            }
+                        },
+                        likes: {
+                            where: { user_id: userId }, // only include if current user liked
+                            select: { id: true }
+                        },
+                        bookmarks: {
+                            where: {
+                                user_id: userId
+                            },
+                            select: {
+                                id: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                timestamp: 'desc'
+            },
+            skip,
+            take: limit
+        }),
+        prisma.post_bookmarks.count({
+            where: {
+                user_id: userId
+            }
+        })
+    ])
+
+    const postsWithFlags = posts.map(({ post: { likes, bookmarks, user, media, ...post } }) => ({
+        ...post,
+        user: {
+            ...user,
+            isFollowed: user.followers.length > 0,
+        },
+        media: media.map(data => data.link_url),
+        isLiked: likes.length > 0,
+        isBookmarked: bookmarks.length > 0,
+    }));
+
+    return {
+        posts: postsWithFlags,
+        pagination: {
+            total,
+            page: Math.ceil(skip / limit) + 1,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasNextPage: skip + limit < total,
+            hasPrevPage: skip > 0
+        }
+    }
+}
+
 const removePostMedia = async (postId: number, image: string[]) => {
 
     //Delete media in supabase
@@ -452,4 +545,27 @@ const removePostMedia = async (postId: number, image: string[]) => {
             post_id: postId
         }
     })
+}
+
+const isExtention = async (images: string) => {
+    const extentions = ['jpg', 'jpeg', 'png', 'gif']
+
+    if (_.includes(extentions, images)) {
+        return true
+    }
+    return false
+}
+
+const saveImageToDB = async (postId: number, image: string) => {
+    const postMedia = await prisma.post_media.create(
+        {
+            data: {
+                post_id: postId,
+                link_url: image,
+                timestamp: new Date()
+            }
+        }
+    )
+
+    return postMedia
 }

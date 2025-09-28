@@ -47,10 +47,10 @@ export const generatePost = async (id: number) => {
 const main = async () => {
   try {
     const users = await Promise.all(Array.from({ length: 5 }, () => generateUser()));
-    // users?.map(user => user);
-    // for await (const user of users) {
-    //   const posts = await Promise.all(Array.from({ length: 5 }, () => generatePost(user.id)));
-    // }
+    users?.map(user => user);
+    for await (const user of users) {
+      const posts = await Promise.all(Array.from({ length: 5 }, () => generatePost(user.id)));
+    }
   } catch (e) {
     console.error(e);
 

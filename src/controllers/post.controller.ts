@@ -2,7 +2,7 @@ import { NextFunction, Response, Router } from "express";
 import { validate } from "../middleware/validate.middleware";
 import { AuthRequest, validateToken } from "../middleware/auth.middleware";
 import { PostCreateSchema, PostMediaSchema, PostUpdateSchema } from "../shcemas/post.schema";
-import { addImageToPost, bookmarkPost, createPost, deletePost, getExplorePost, getHomePost, getPostById, unbookmarkPost, updatePost } from "../services/post.service";
+import { addImageToPost, bookmarkPost, createPost, deletePost, getBookmarkedPosts, getExplorePost, getHomePost, getPostById, unbookmarkPost, updatePost } from "../services/post.service";
 import { validateIdParam } from "../utils/helper";
 
 
@@ -86,7 +86,7 @@ router.get("/explorer", validateToken, async (req: AuthRequest, res: Response, n
     }
 })
 
-router.get("/:id", validateToken, validateIdParam, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/detail/:id", validateToken, validateIdParam, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const postId: number = +req.params["id"]
         const userId = req.user_id as number
@@ -135,6 +135,24 @@ router.delete("/bookmark/:id", validateToken, validateIdParam, async (req: AuthR
         const response = await unbookmarkPost(userId, postId)
 
         res.status(201).json({success: true, message: "Post unbookmarked successfully", data: response})
+    } catch (error) {
+        next(error)
+    }
+})
+
+router.get("/bookmarks", validateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user_id as number
+
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+
+        const skip = (page - 1) * limit;
+        const take = limit;
+
+        const response = await getBookmarkedPosts(userId, skip, take)
+
+        res.status(201).json({success: true, message: "Data successfully retrieve", data: response})
     } catch (error) {
         next(error)
     }
