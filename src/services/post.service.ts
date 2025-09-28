@@ -99,22 +99,76 @@ export const getHomePost = async (userId: number, skip: number = 0, limit: numbe
     }
 }
 
-export const getUserPost = async (userId: number, skip: number = 0, limit: number = 10) => {
-    const post = await prisma.posts.findFirst({
-        where: {
-            user_id: userId
-        },
-        include: {
-            _count: true
-        },
-        skip,
-        take: limit,
-        orderBy: {
-            timestamp: 'desc'
-        }
-    })
+export const getUserPost = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {
+    const [posts, total] = await Promise.all([
+        //add isLiked property
+        prisma.posts.findMany({
+            where: {
+                user_id: userId
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        avatar: true,
+                        followers: {
+                            where: {
+                                following_user_id: userId
+                            },
+                            select: {
+                                id: true
+                            }
+                        }
+                    }
+                },
+                media: true,
+                _count: true,
+                likes: {
+                    where: { user_id: userId }, // only include if current user liked
+                    select: { id: true }
+                },
+                bookmarks: {
+                    where: {
+                        user_id: userId
+                    },
+                    select: {
+                        id: true
+                    }
+                }
+            },
+            orderBy: {
+                timestamp: 'desc'
+            },
+            take: limit,
+            skip
+        }),
+        prisma.posts.count()
+    ])
 
-    return post
+    const postsWithIsLiked = posts.map(({likes, bookmarks, user, media, ...post}) => ({
+        ...post,
+        user : {
+            ...user,
+            isFollowed: user.followers.length > 0,
+        },
+        media: media.map(data => data.link_url),
+        isLiked: likes.length > 0,
+        isBookmarked: bookmarks && bookmarks.length > 0
+    }))
+
+
+    return {
+        posts: postsWithIsLiked,
+        pagination: {
+            total,
+            page: Math.ceil(skip / limit) + 1,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasNextPage: skip + limit < total,
+            hasPrevPage: skip > 0
+        }
+    }
 }
 
 export const getExplorePost = async (userId: number, skip: number = 0, limit: number = 10): Promise<PostResponse> => {

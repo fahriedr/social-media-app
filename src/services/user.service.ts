@@ -250,3 +250,25 @@ export const getUserSuggestions = async (userId: number, limit: number) => {
 
     return users
 }
+
+export const getUserById = async (userId: number) => {
+
+    const user = await prisma.users.findUnique({
+        where: {
+            id: userId
+        },
+        select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true,
+            bio: true
+        }
+    })
+
+    if (!user) {
+        throw new HttpException(404, "User not found")
+    }
+
+    return user
+}

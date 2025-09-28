@@ -2,7 +2,7 @@ import { NextFunction, Response, Router } from "express";
 import { validate } from "../middleware/validate.middleware";
 import { AuthRequest, validateToken } from "../middleware/auth.middleware";
 import { PostCreateSchema, PostMediaSchema, PostUpdateSchema } from "../shcemas/post.schema";
-import { addImageToPost, bookmarkPost, createPost, deletePost, getBookmarkedPosts, getExplorePost, getHomePost, getPostById, unbookmarkPost, updatePost } from "../services/post.service";
+import { addImageToPost, bookmarkPost, createPost, deletePost, getBookmarkedPosts, getExplorePost, getHomePost, getPostById, getUserPost, unbookmarkPost, updatePost } from "../services/post.service";
 import { validateIdParam } from "../utils/helper";
 
 
@@ -37,6 +37,25 @@ router.put("/update/:id", validateToken, validate(PostUpdateSchema), validateIdP
 
 })
 
+router.get("/user/:id", validateToken, validateIdParam, async (req: AuthRequest, res: Response, next: NextFunction) => {
+
+    try {
+        const userId = +req.params["id"]
+
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+
+        const skip = (page - 1) * limit;
+        const take = limit;
+
+        const response = await getUserPost(userId, skip, take)
+
+        res.status(201).json({success: true, message: "Data successfully retrieve", data: response})
+    } catch (error) {
+        next(error)
+    }
+
+})
 
 router.post("/signed-url", validateToken, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {

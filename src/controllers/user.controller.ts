@@ -1,6 +1,6 @@
 import { NextFunction, Response, Router, Request } from "express"
 import { AuthRequest, validateToken } from "../middleware/auth.middleware"
-import { followUser, getFollowed, getFollowers, getProfile, getUserSuggestions, searchUser, unfollowUser, updateProfile } from "../services/user.service"
+import { followUser, getFollowed, getFollowers, getProfile, getUserById, getUserSuggestions, searchUser, unfollowUser, updateProfile } from "../services/user.service"
 import { validate } from "../middleware/validate.middleware"
 import { updateUserSchema } from "../shcemas/user.schema"
 import { validateIdParam } from "../utils/helper"
@@ -128,5 +128,20 @@ router.get('/suggested', validateToken, async (req: AuthRequest, res: Response, 
     }
 })
 
+
+router.get('/detail/:id', validateToken, validateIdParam, async (req: AuthRequest, res: Response, next: NextFunction) => {
+
+    try {
+        
+        const userId: number = +req.params["id"]
+
+        const response = await getUserById(userId)
+
+        res.status(201).json({success: true, data: response})
+
+    } catch (error) {
+        next(error)
+    }
+})
 
 export default router
